@@ -20,7 +20,7 @@ class JsonableModel(models.Model):
         rawTimeFields = getattr(self, 'rawTimeFields', set())
         idName = getattr(self, 'idName', None)
         extraFieldNames = getattr(self, 'extraFieldNames', [])
-    
+        
         # get default serialized json dictionary for object instance
         # note that because the serializer requires an iterable and we only have
         # a single instance, we must create a singleton tuple for serialization,
@@ -111,7 +111,8 @@ class AppUser(JsonableModel):
                                           
     friends = models.ManyToManyField('self', related_name="friends", blank=True) 
     
-    allToManyFields = {'participating', 'friends'}
+    extraFieldNames = ["hosting"]
+    allToManyFields = {'participating', 'friends', "hosting"}
     imageFields = {'prof_pic'}
     idName = "uid"
     
