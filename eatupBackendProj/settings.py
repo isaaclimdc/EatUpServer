@@ -133,7 +133,9 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     'django.contrib.admindocs',
     'annoying',
-    'eatupBackendApp'
+    'eatupBackendApp',
+    # has to go after all apps that need cleanup
+    'django_cleanup'
 )
 
 
