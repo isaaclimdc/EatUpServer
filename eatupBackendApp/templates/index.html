@@ -9,7 +9,7 @@ hello world
 <script>
 $(document).ready(function(){
     $("body").append("==jquery loaded==");
-    
+    /*
     var data = {
                   title: "got dangit bobby",
                   description: "that boy ain't right",
@@ -61,10 +61,10 @@ $(document).ready(function(){
             console.log('failure', data);
         }
     });
+    */
     
-    /*
     var data = {
-        uid: 777,
+        uid: 13,
         first_name: "John",
         last_name: "Doe",
         prof_pic_url: "https://www.google.com/images/srpr/logo4w.png",
@@ -74,20 +74,47 @@ $(document).ready(function(){
         participating: [1],
         friends: [12345, 67890]
     };
+    var editedData = {
+        first_name: "Hank",
+        last_name: "Hill",
+        participating: null,
+        friends: [67890],
+        prof_pic_url: "http://wondermark.com/c/2013-04-02-926crook.gif"
+    };
     
     $.ajax({
-        url: 'create/user/',
+        url: '/create/user/',
         dataType: 'jsonp',
         type: 'get',
         data: data,
         success: function(data){
             console.log('success', data);
+            if ("error" in data){
+                console.log("create error:", data.error);
+                return;
+            }
+            
+            var uid = data.uid;
+            editedData['uid'] = uid;
+            $.ajax({
+                url: "/edit/user/",
+                dataType: 'jsonp',
+                type: 'get',
+                data: editedData,
+                success: function(data){
+                    console.log('edit success', data);
+                },
+                error: function(data){
+                    console.log("edit failure", data);
+                }
+            });
+          
         },
         error: function(data){
             console.log('failure', data);
         }
     });
-    */
+    
     
 });
 </script>

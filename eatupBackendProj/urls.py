@@ -21,6 +21,8 @@ urlpatterns = patterns('',
     # if you want to clear it entirely
     url(r'^edit/event/', 'eatupBackendApp.views.editEvent', name='edit_event'),
     
+    url(r'^edit/user/', 'eatupBackendApp.views.editUser', name='edit_user'),
+    
     # Uncomment the admin/doc line below to enable admin documentation:
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 

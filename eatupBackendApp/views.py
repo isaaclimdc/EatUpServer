@@ -288,6 +288,12 @@ def getUpdatedLocations(newLocationsData, allowCreation=False,
     
     return eventLocations, None        
     
+def isListInRequestDict(dataDict, listName):
+    if listName.endswith("[]"):
+        return listName in dataDict or listName[:-2] in dataDict
+    else:
+        return listName in dataDict or ("%s[]" % listName) in dataDict
+    
 ### url-view functions ###    
 
 def showIndex(request):
@@ -336,7 +342,7 @@ def updateAndSaveEvent(dataDict, creationMode=False):
     
     # check for 'participants' to also check for case where we are trying to 
     # clear the list of participants
-    participantsGiven = "participants[]" in dataDict or 'participants' in dataDict
+    participantsGiven = isListInRequestDict(dataDict, "participants[]")
     rawParticipantIds = dataDict.getlist("participants[]")
     rawLocationsData, locationsGiven = getDictArray(dataDict, "locations")
     
@@ -440,74 +446,111 @@ def editEvent(request):
     dataDict = request.REQUEST
     return updateAndSaveEvent(dataDict, creationMode=False)
     
-@json_response()   
-def createUser(request):
-    dataDict = request.REQUEST
-    
+def updateAndSaveUser(dataDict, creationMode=False):
     if 'uid' not in dataDict:
         return createErrorDict("facebook uid is required")
-    
     uid = parseIntOrNone(dataDict['uid'])
+    
+    existingUser = get_object_or_None(AppUser, uid=uid)
     if uid is None or uid < 0:
         return createErrorDict("invalid uid given; incorrect format")
-    elif get_object_or_None(AppUser, uid=uid) is not None:
-        return createErrorDict("cannot create user %d, already exists" % uid)
-        
-    firstName = dataDict.get("first_name", "")
-    lastName = dataDict.get("last_name", "")
+    elif creationMode and existingUser is not None:
+        return createErrorDict("cannot create user %d, already exists" %uid)
+    elif not creationMode and existingUser is None:
+        return createErrorDict("cannot edit user %d, does not exist" % uid)
+    
+    # either set as existing user or create a new one
+    currUser = existingUser if existingUser is not None else AppUser(uid=uid)
+    
+    rawFirstName = dataDict.get("first_name")
+    rawLastName = dataDict.get("last_name")
     
     # parse participating IDs and friend IDs into lists of Events and AppUsers,
     # respectively
-    participatingIds = dataDict.getlist('participating[]')
-    friendIds = dataDict.getlist('friends[]')
+    participatingGiven = isListInRequestDict(dataDict, "participating[]")
+    rawParticipatingIds = dataDict.getlist('participating[]')
+    newParticipating = []
+    friendsGiven = isListInRequestDict(dataDict, "friends[]")
+    rawFriendIds = dataDict.getlist('friends[]')
+    newFriends = []
     
-    userEvents, error = parseIdsToObjects(participatingIds, Event,
-                                          lambda s: int(s), 
-                                          objName="participating")
-    if error:
-        return createErrorDict(error)
+    if rawFirstName is not None:
+        currUser.first_name = rawFirstName
         
-    userFriends, error = parseIdsToObjects(friendIds, AppUser, lambda s: int(s),
-                                       objName="friend")
-    if error:
-        return createErrorDict(error)                                  
+    if rawLastName is not None:
+        currUser.last_name = rawLastName
+        
+    if participatingGiven:
+        newParticipating, error = parseIdsToObjects(rawParticipatingIds, Event,
+                                                    lambda s: int(s), 
+                                                    objName="participating")
+        if error: return createErrorDict(error)
+        
+    if friendsGiven:
+        newFriends, error = parseIdsToObjects(rawFriendIds, AppUser, 
+                                              lambda s: int(s),
+                                              objName="friend")
+        if error: return createErrorDict(error)   
     
     # check for valid profile picture url, if given    
     profPicUrl = dataDict.get("prof_pic_url")
     profPicContent = None
     profPicFiletype = None
-    if profPicUrl:
-        try:
-            profPicContent, profPicFiletype = \
-                imageUtil.getImageUrlContentAndType(profPicUrl)
-        except ValueError as e:
-            return createErrorDict(str(e))
+    if profPicUrl is not None:
+        if profPicUrl != "":
+            try:
+                profPicContent, profPicFiletype = \
+                    imageUtil.getImageUrlContentAndType(profPicUrl)
+            except ValueError as e:
+                return createErrorDict(str(e))
+        # delete profile picture if prompted to        
+        else:
+            currUser.prof_pic = None
     
-    # finally create the AppUser object itself        
-    newUser = AppUser(uid=uid, first_name=firstName, last_name=lastName
-                      # TODO: profile picture handling
-                     )
     # validate the new AppUser object                     
     try:
-        newUser.full_clean()
+        currUser.full_clean()
     except Exception as e:
-        return createErrorDict(str(e))
-        
-    # created object must be saved before editing ManyToMany fields
-    newUser.save()
-    newUser.participating.add(*userEvents)
-    newUser.friends.add(*userFriends)
+        return createErrorDict(str(e))    
     
+    # save the user
+    currUser.save()
+         
+    if participatingGiven:
+        currUser.participating.clear()
+        currUser.participating.add(*newParticipating)
+    
+    if friendsGiven:
+        currUser.friends.clear()
+        currUser.friends.add(*newFriends)
+        
     # save profile picture
     if profPicContent and profPicFiletype:
-        filename = "profpic_%d.%s" % (newUser.uid, profPicFiletype)
+        filename = "profpic_%d.%s" % (currUser.uid, profPicFiletype)
         try:
-            imageUtil.saveImageFieldContents(newUser, 'prof_pic', 
+            imageUtil.saveImageFieldContents(currUser, 'prof_pic', 
                                              profPicContent, filename)
         except Exception as e:
             errorDict = createErrorDict(str(e))
-            errorDict['uid'] = newUser.pk
+            errorDict['uid'] = currUser.pk
             return errorDict
     
     return {'status': 'ok',
-            'uid': newUser.pk}
+            'uid': currUser.pk}
+    
+@json_response()   
+def createUser(request):
+    dataDict = request.REQUEST
+    
+    output = updateAndSaveUser(dataDict, creationMode=True)
+    # remove erroneously created users
+    if "error" in output and "uid" in output:
+        AppUser.objects.filter(uid=output['uid']).delete()
+        del(output['uid'])
+        
+    return output
+    
+@json_response()   
+def editUser(request):
+    dataDict = request.REQUEST
+    return updateAndSaveUser(dataDict, creationMode=False)    
