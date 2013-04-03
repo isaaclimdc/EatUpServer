@@ -17,6 +17,10 @@ urlpatterns = patterns('',
     url(r'^create/event/', 'eatupBackendApp.views.createEvent', name='create_event'),
     url(r'^create/user/', 'eatupBackendApp.views.createUser', name='create_user'),
     
+    # use null for participants and locations instead of empty arrays or dicts
+    # if you want to clear it entirely
+    url(r'^edit/event/', 'eatupBackendApp.views.editEvent', name='edit_event'),
+    
     # Uncomment the admin/doc line below to enable admin documentation:
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 

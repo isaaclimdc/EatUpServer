@@ -61,7 +61,7 @@ def jsonDictOfSpecificObj(modelClass, pk, errorMsg="invalid"):
         return foundObj.getDictForJson()
     
 def getDictArray(reqDict, name):
-    '''(request dictionary, string): dictionary list
+    '''(request dictionary, string): dictionary list, bool
     
     modified from http://stackoverflow.com/a/5498916
     takes the weirdly-parsed request.REQUEST dict from some django request that
@@ -73,11 +73,17 @@ def getDictArray(reqDict, name):
     NOTE: only works for arrays of one-level objects
     
     always returns an array (returns an empty list if given invalid name)
+    
+    also returns whether or not it was able to find the name or not
     '''
+    exists = False
     dic = {}
     for k in reqDict.keys():
         if k.startswith(name):
+            exists = True
             rest = k[len(name):]
+            if len(rest) == 0:
+                continue
 
             # split the string into different components
             parts = [p[:-1] for p in rest.split('[')][1:]
@@ -89,14 +95,16 @@ def getDictArray(reqDict, name):
 
             # add the information to the dictionary
             dic[id][parts[1]] = reqDict.get(k)
+            
     
     # because dic is a dictionary of listindeces mapped to the actual 
     # sub-dictionary at that index, return the list of sub-dictionaries instead
     keyVals = sorted(dic.items())
-    return map(lambda (i, subDict): subDict, keyVals)
+    return map(lambda (i, subDict): subDict, keyVals), exists
    
 
-def locationDictToObject(locDict, allowCreation=True, allowEditing=False):
+def locationDictToObject(locDict, allowCreation=True, allowEditing=False, 
+                         parentEvent=None):
     ''' (dict, bool, bool): Location, string
 
     validates and turns a dictionary of some location's attributes into its
@@ -141,13 +149,16 @@ def locationDictToObject(locDict, allowCreation=True, allowEditing=False):
     outputLoc = None
     # if preexisting object, edit its attributes
     if existingLoc is not None:
-        if(allowEditing):
-            existingLoc.lat = latitude
-            existingLoc.lng = longitude
-            existingLoc.friendly_name = friendlyName
-            existingLoc.link = link
-            existingLoc.num_votes = numVotes
-            outputLoc = existingLoc
+        if allowEditing:
+            if parentEvent is None or existingLoc.eventHere == parentEvent:
+                existingLoc.lat = latitude
+                existingLoc.lng = longitude
+                existingLoc.friendly_name = friendlyName
+                existingLoc.link = link
+                existingLoc.num_votes = numVotes
+                outputLoc = existingLoc
+            else:
+                return (None, 'not allowed to modify location ID %d' % id)
         else:
             return (None, "location ID %d already exists" % id)
     # if no preexisting object and creation is allowed, create new Location
@@ -184,7 +195,21 @@ def parseElems(unparsedElems, parseFn, elemName="element"):
             return (None, "unable to parse %s %s" % (elemName, elem))
         parsedElems.append(parsedElem)
     return (parsedElems, None)
+
+def idToObject(parsedId, objType, objName="object"):
+    ''' (<id type>, models.Model subclass, string): model instance
     
+    takes an already-parsed id (ie: already converted from string)
+    and creates a list of model objects with those ids
+    returns two values as a tuple: 
+    - the objects, if it is found (None otherwise)
+    - None if no error occurs, otherwise an error message
+    '''
+    foundObj = get_object_or_None(objType, pk=parsedId)
+    if foundObj is None:
+        return (None, 'invalid %s ID %r' % (objName, parsedId))
+    else:
+        return foundObj, None
     
 def idsToObjects(parsedIdList, objType, objName="object"):
     ''' (<id type> list, models.Model subclass, string): model instance list
@@ -197,11 +222,12 @@ def idsToObjects(parsedIdList, objType, objName="object"):
     '''
     objects = []
     for parsedId in parsedIdList:
-        foundObj = get_object_or_None(objType, pk=parsedId)
-        if foundObj is None:
-            return (None, 'invalid %s ID %r' % (objName, parsedId))
+        foundObj, error = idToObject(parsedId, objType, objName)
+        if (error): 
+            return None, error
         objects.append(foundObj)
     return (objects, None)       
+    
     
 def parseIdsToObjects(unparsedIds, objType, parseFn, objName="object"):
     ''' ('a list, models.Model subclass, 'a -> id type, string):
@@ -225,6 +251,42 @@ def parseIdsToObjects(unparsedIds, objType, parseFn, objName="object"):
         
     return (objects, None)
         
+def parseTimestamp(timestampStr):    
+    timestampVal = parseIntOrNone(timestampStr)
+    
+    if timestampVal == None:
+        return None, "invalid timestamp"
+        
+    # account for fact that javascript timestamps are in milliseconds while
+    # python's are in seconds
+    timestampVal /= 1000
+    
+    # turn timestamp into an actual datetime object
+    try:
+        newDateTime = datetime.datetime.fromtimestamp(timestampVal, utc)
+    except ValueError:
+        return None, 'invalid timestamp'
+        
+    return newDateTime, None
+    
+def getUpdatedLocations(newLocationsData, allowCreation=False, 
+                        allowEditing=True, parentEvent=None):   
+    # for every location data, update locations as needed and storedthe 
+    # new object, but don't save to the database
+    # during the initial runthrough. Does not save the updated location objects,
+    # up to caller to called location.save() to update the database
+    eventLocations = []
+    for i in xrange(len(newLocationsData)):
+        locationData = newLocationsData[i]
+        newLocation, error = locationDictToObject(locationData, 
+                                                  allowCreation=allowCreation,
+                                                  allowEditing=allowEditing,
+                                                  parentEvent=parentEvent)
+        if error:
+            return None, "invalid location data at index %d: %s" % (i, error)
+        eventLocations.append(newLocation)
+    
+    return eventLocations, None        
     
 ### url-view functions ###    
 
@@ -253,88 +315,130 @@ def getEvent(request):
     
     return jsonDictOfSpecificObj(Event, eid, errorMsg="invalid event")       
     
+    
+def updateAndSaveEvent(dataDict, creationMode=False):
+    parsedEventId = parseIntOrNone(dataDict.get('eid'))
+    if creationMode == False:
+        if parsedEventId is None:
+            return createErrorDict("missing event ID")
+        newEvent = get_object_or_None(Event, eid=parsedEventId)
+        if newEvent is None:
+            return createErrorDict("invalid event ID %s" % parsedEventId)
+    else:
+        # don't initialize any attributes yet, wait until
+        # parsing rest of attributes before setting attributes
+        newEvent = Event()
+    
+    rawHostId = dataDict.get("host")
+    rawTitle = dataDict.get("title")
+    rawDesc = dataDict.get("description")
+    rawTimestamp = dataDict.get("timestamp")
+    
+    # check for 'participants' to also check for case where we are trying to 
+    # clear the list of participants
+    participantsGiven = "participants[]" in dataDict or 'participants' in dataDict
+    rawParticipantIds = dataDict.getlist("participants[]")
+    rawLocationsData, locationsGiven = getDictArray(dataDict, "locations")
+    
+    changeDict = {
+        'title': None,
+        'date_time': None,
+        'description': None,
+        'host': None
+    }
+    newParticipants = None
+    newLocations = None
+    
+    # load simple attribute dictionary
+    if rawTitle is None:
+        if creationMode:
+            changeDict['title'] = ''
+    else:
+        changeDict['title'] = rawTitle
+        
+    if rawDesc is None:
+        if creationMode:
+            changeDict['description'] = ''
+    else:
+        changeDict['description'] = rawDesc
+        
+    if rawTimestamp is None:
+        if creationMode:
+            return createErrorDict('timestamp is required')
+    else:
+        newDateTime, error = parseTimestamp(rawTimestamp)
+        if error: return createErrorDict(error)
+        changeDict['date_time'] = newDateTime
+    
+    if rawHostId is None:
+        if creationMode:
+            return createErrorDict("host user's ID is required")
+    else:
+        parsedHostId = parseIntOrNone(rawHostId)
+        if parsedHostId is None:
+            return createErrorDict("invalid format for host user ID given")
+        newHost = get_object_or_None(AppUser, uid=parsedHostId)
+        if newHost is None:
+            return createErrorDict("invalid host user ID given")
+        changeDict['host'] = newHost
+    
+    # retrieve values for to-many fields
+    if participantsGiven:
+        newParticipants, error = parseIdsToObjects(rawParticipantIds, AppUser,
+                                                     lambda s: int(s), 
+                                                     objName="participant")
+        if error: return createErrorDict(error)
+        
+    if locationsGiven:
+        newLocations, error = getUpdatedLocations(rawLocationsData, 
+                                                  allowCreation=True,
+                                                  allowEditing=True,
+                                                  parentEvent=newEvent)
+        if error: return createErrorDict(error)
+        
+    # finally, update the events' simple attributes
+    for key in changeDict.keys():
+        if changeDict[key] is None:
+            continue
+        setattr(newEvent, key, changeDict[key])
+    
+    # check for validity before committing to any changes
+    try:
+        newEvent.full_clean()
+    except Exception as e:
+        return createErrorDict(str(e))    
+    
+    # finally, save locations and events
+    newEvent.save()
+    
+    if newLocations is not None:
+        for loc in newLocations:
+            loc.save()
+        newEvent.locations.clear()
+        newEvent.locations.add(*newLocations)
+        
+        # clean up newly orphaned locations
+        Location.objects.filter(eventHere=None).delete()
+        
+    if newParticipants is not None:
+        newEvent.participants.clear()
+        newEvent.participants.add(*newParticipants)
+    
+    return {'status':'ok',
+            'eid': newEvent.pk}
+    
 @json_response()   
 def createEvent(request):
     # change this to POST if it turns out ios apps don't have to worry about
     # cross domain policy
     dataDict = request.REQUEST
     
-    newHostId = dataDict.get("host")
-    newTitle = dataDict.get("title", "")
-    newDesc = dataDict.get("description", "")
-    newTimestamp = parseIntOrNone(dataDict.get("timestamp"))
-    newParticipantIds = dataDict.getlist("participants[]")
-    newLocationsData = getDictArray(dataDict, "locations")
+    return updateAndSaveEvent(dataDict, creationMode=True)
     
-    # parse out new date time
-    if newTimestamp is None:
-        return createErrorDict('invalid timestamp')
-    # account for fact that javascript timestamps are in milliseconds while
-    # python's are in seconds
-    newTimestamp /= 1000
-    
-    # turn timestamp into an actual datetime object
-    try:
-        newDateTime = datetime.datetime.fromtimestamp(newTimestamp, utc)
-    except ValueError:
-        return createErrorDict('invalid timestamp')
-    
-    # parse out host ID to the AppUser object
-    if newHostId is None:
-        return createErrorDict("host user's ID is required")
-    parsedHostId = parseIntOrNone(newHostId)
-    if parsedHostId is None:
-        return createErrorDict("invalid format for host user ID given")
-    hostUser = get_object_or_None(AppUser, uid=parsedHostId)
-    if hostUser is None:
-        return createErrorDict("invalid host user ID given")
-    
-    # parse out list of participant users
-    if len(newParticipantIds) == 0:
-        return createErrorDict('events require at least one participant '
-                               '(ie: the creator)')
-    else:
-        eventParticipants, error = parseIdsToObjects(newParticipantIds, AppUser,
-                                                     lambda s: int(s), 
-                                                     objName="participant")
-        if error:
-            return createErrorDict(error)
-                    
-    # for every location data, create/edit locations as needed and stored the 
-    # new object, but don't save to the database
-    # during the initial runthrough. If we hit an error, don't save any changes
-    # and just return an error JSON. Only after everything passes do we save to
-    # the database
-    eventLocations = []
-    for i in xrange(len(newLocationsData)):
-        locationData = newLocationsData[i]
-        newLocation, error = locationDictToObject(locationData, 
-                                                  allowCreation=True,
-                                                  allowEditing=False)
-        if error:
-            return createErrorDict("invalid location data at index %d: %s" 
-                                   % (i, error))
-        eventLocations.append(newLocation)
-        
-    # save all location changes
-    for loc in eventLocations:
-        loc.save()
-            
-    # finally create the event object itself        
-    newEvent = Event(title=newTitle, description=newDesc,
-                     date_time=newDateTime, host=hostUser)
-    try:
-        newEvent.full_clean()
-    except Exception as e:
-        return createErrorDict(str(e))
-    # created object must be saved before editing ManyToMany fields
-    newEvent.save()
-    newEvent.participants.add(*eventParticipants)
-    newEvent.locations.add(*eventLocations)
-            
-    return {'status':'ok',
-            'eid': newEvent.pk}
-    
+@json_response()
+def editEvent(request):
+    dataDict = request.REQUEST
+    return updateAndSaveEvent(dataDict, creationMode=False)
     
 @json_response()   
 def createUser(request):
@@ -348,17 +452,6 @@ def createUser(request):
         return createErrorDict("invalid uid given; incorrect format")
     elif get_object_or_None(AppUser, uid=uid) is not None:
         return createErrorDict("cannot create user %d, already exists" % uid)
-        
-    # check for valid profile picture url, if given    
-    profPicUrl = dataDict.get("prof_pic_url")
-    profPicContent = None
-    profPicFiletype = None
-    if profPicUrl:
-        try:
-            profPicContent, profPicFiletype = \
-                imageUtil.getImageUrlContentAndType(profPicUrl)
-        except ValueError as e:
-            return createErrorDict(str(e))
         
     firstName = dataDict.get("first_name", "")
     lastName = dataDict.get("last_name", "")
@@ -378,6 +471,17 @@ def createUser(request):
                                        objName="friend")
     if error:
         return createErrorDict(error)                                  
+    
+    # check for valid profile picture url, if given    
+    profPicUrl = dataDict.get("prof_pic_url")
+    profPicContent = None
+    profPicFiletype = None
+    if profPicUrl:
+        try:
+            profPicContent, profPicFiletype = \
+                imageUtil.getImageUrlContentAndType(profPicUrl)
+        except ValueError as e:
+            return createErrorDict(str(e))
     
     # finally create the AppUser object itself        
     newUser = AppUser(uid=uid, first_name=firstName, last_name=lastName

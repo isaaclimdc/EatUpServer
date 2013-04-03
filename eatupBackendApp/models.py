@@ -129,8 +129,6 @@ class Location(JsonableModel):
     eventHere = models.ForeignKey(Event, related_name="locations", 
                                   null=True, blank=True)
     
-    idName = 'id'
-    
     def __unicode__(self):
         return u"(id: %s) %.3f, %.3f: %s " % (self.id, self.lat, self.lng, 
                                               self.friendly_name)
