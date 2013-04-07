@@ -94,7 +94,7 @@ class Event(JsonableModel):
 # front end to correctly authenticate
 # note that this doesn't use Django's User model at all
 class AppUser(JsonableModel):
-    uid = models.PositiveIntegerField(primary_key=True)
+    uid = models.BigIntegerField(primary_key=True)
     
     first_name = models.CharField(max_length=128)
     last_name = models.CharField(max_length=128)
