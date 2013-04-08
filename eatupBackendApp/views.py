@@ -26,7 +26,14 @@ def parseIntOrNone(intStr):
         output = int(intStr)
     except:
         output = None
-    return output    
+    return output  
+
+def parseLongOrNone(longStr):
+    try:
+        output = long(longStr)
+    except:
+        output = None
+    return output     
     
 def parseFloatOrNone(floatStr):
     '''(string): float or None
@@ -304,7 +311,7 @@ def getUser(request):
     if 'uid' not in request.REQUEST:
         return createErrorDict('missing id argument')
     
-    uid = parseIntOrNone(request.REQUEST['uid'])
+    uid = parseLongOrNone(request.REQUEST['uid'])
     if uid is None:
         return createErrorDict('invalid user')
         
@@ -380,7 +387,7 @@ def updateAndSaveEvent(dataDict, creationMode=False):
         if creationMode:
             return createErrorDict("host user's ID is required")
     else:
-        parsedHostId = parseIntOrNone(rawHostId)
+        parsedHostId = parseLongOrNone(rawHostId)
         if parsedHostId is None:
             return createErrorDict("invalid format for host user ID given")
         newHost = get_object_or_None(AppUser, uid=parsedHostId)
@@ -449,7 +456,7 @@ def editEvent(request):
 def updateAndSaveUser(dataDict, creationMode=False):
     if 'uid' not in dataDict:
         return createErrorDict("facebook uid is required")
-    uid = parseIntOrNone(dataDict['uid'])
+    uid = parseLongOrNone(dataDict['uid'])
     
     existingUser = get_object_or_None(AppUser, uid=uid)
     if uid is None or uid < 0:
