@@ -9,12 +9,12 @@ hello world
 <script>
 $(document).ready(function(){
     $("body").append("==jquery loaded==");
-    /*
+    
     var data = {
                   title: "got dangit bobby",
                   description: "that boy ain't right",
                   timestamp: (new Date()).valueOf(), 
-                  participants: [12345, 67890],
+                  participants: [67890],
                   locations: [
                     {
                         lat: (Math.random()*2000)-1000,
@@ -23,15 +23,15 @@ $(document).ready(function(){
                         friendly_name: "blarf"
                     }
                   ],
-                  host: 777
+                  host: 12345
                };
     var editedData = {
         description: null, 
         // use null to indicate that you'd like to clear the participants list
         // (empty array doesn't work due to jquery not passing along empty 
         // data structures)
-        participants: null,
-        host: 67890,
+        //participants: null,
+        //host: 67890,
         timestamp: (new Date()).valueOf(),
         locations: null
     };         
@@ -61,8 +61,8 @@ $(document).ready(function(){
             console.log('failure', data);
         }
     });
-    */
     
+    /*
     var data = {
         uid: 100002448015520,
         first_name: "John",
@@ -115,7 +115,7 @@ $(document).ready(function(){
             console.log('failure', data);
         }
     });
-    
+    */
     
 });
 </script>

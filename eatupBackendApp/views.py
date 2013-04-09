@@ -394,12 +394,16 @@ def updateAndSaveEvent(dataDict, creationMode=False):
         if newHost is None:
             return createErrorDict("invalid host user ID given")
         changeDict['host'] = newHost
+        # add to participants list if not already there
+        if rawHostId not in rawParticipantIds:
+            rawParticipantIds.append(rawHostId)
+            participantsGiven = True
     
     # retrieve values for to-many fields
     if participantsGiven:
         newParticipants, error = parseIdsToObjects(rawParticipantIds, AppUser,
-                                                     lambda s: int(s), 
-                                                     objName="participant")
+                                                   lambda s: int(s), 
+                                                   objName="participant")
         if error: return createErrorDict(error)
         
     if locationsGiven:
@@ -434,6 +438,8 @@ def updateAndSaveEvent(dataDict, creationMode=False):
         Location.objects.filter(eventHere=None).delete()
         
     if newParticipants is not None:
+        if newEvent.host not in newParticipants:
+            newParticipants.append(newEvent.host)
         newEvent.participants.clear()
         newEvent.participants.add(*newParticipants)
     
