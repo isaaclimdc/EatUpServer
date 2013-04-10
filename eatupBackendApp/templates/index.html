@@ -38,8 +38,8 @@ $(document).ready(function(){
                
     $.ajax({
         url: 'create/event/',
-        dataType: 'jsonp',
-        type: 'get',
+        dataType: 'json',
+        type: 'post',
         data: data,
         success: function(data){
             console.log('success', data);

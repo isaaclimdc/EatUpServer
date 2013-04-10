@@ -327,6 +327,28 @@ def getEvent(request):
         return createErrorDict('invalid event')
     
     return jsonDictOfSpecificObj(Event, eid, errorMsg="invalid event")       
+
+@json_response()    
+def getUserEvents(request):
+    if 'uid' not in request.REQUEST:
+        return createErrorDict('missing id argument')
+    
+    uid = parseLongOrNone(request.REQUEST['uid'])
+    if uid is None:
+        return createErrorDict('invalid user')
+        
+    requestedUser = get_object_or_None(AppUser, uid=uid)
+    if requestedUser is None:
+        return createErrorDict('user does not exist')
+    
+    outputJsonDicts = []
+    for participatingEvent in requestedUser.participating.all():
+        outputJsonDicts.append(participatingEvent.getDictForJson())
+        
+    return {
+        "uid": uid,
+        "events": outputJsonDicts
+    }    
     
     
 def updateAndSaveEvent(dataDict, creationMode=False):
