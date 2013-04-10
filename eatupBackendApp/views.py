@@ -528,7 +528,7 @@ def updateAndSaveUser(dataDict, creationMode=False):
         if error: return createErrorDict(error)   
     
     # check for valid profile picture url, if given    
-    profPicUrl = dataDict.get("prof_pic_url")
+    profPicUrl = dataDict.get("prof_pic")
     profPicContent = None
     profPicFiletype = None
     if profPicUrl is not None:
