@@ -367,7 +367,7 @@ def updateAndSaveEvent(dataDict, creationMode=False):
     rawHostId = dataDict.get("host")
     rawTitle = dataDict.get("title")
     rawDesc = dataDict.get("description")
-    rawTimestamp = dataDict.get("timestamp")
+    rawTimestamp = dataDict.get("date_time_raw")
     
     # check for 'participants' to also check for case where we are trying to 
     # clear the list of participants
