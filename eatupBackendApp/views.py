@@ -9,6 +9,7 @@ import eatupBackendApp.imageUtil as imageUtil
 from annoying.functions import get_object_or_None 
 from django.shortcuts import render
 from django.utils.timezone import utc
+from django.views.decorators.csrf import csrf_exempt
 
 try:
     import json
@@ -468,7 +469,8 @@ def updateAndSaveEvent(dataDict, creationMode=False):
     return {'status':'ok',
             'eid': newEvent.pk}
     
-@json_response()   
+@json_response() 
+@csrf_exempt  
 def createEvent(request):
     # change this to POST if it turns out ios apps don't have to worry about
     # cross domain policy
