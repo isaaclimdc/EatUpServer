@@ -475,6 +475,7 @@ def createEvent(request):
     # change this to POST if it turns out ios apps don't have to worry about
     # cross domain policy
     dataDict = request.REQUEST
+    print dataDict
     
     return updateAndSaveEvent(dataDict, creationMode=True)
     
