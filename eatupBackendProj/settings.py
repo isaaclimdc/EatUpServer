@@ -170,11 +170,6 @@ LOGGING = {
 
 ### uncomment for heroku ###
 
-MIDDLEWARE_CLASSES = (
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.middleware.csrf.CsrfResponseMiddleware',
-)
-
 # Parse database configuration from $DATABASE_URL
 import dj_database_url
 DATABASES['default'] =  dj_database_url.config()
