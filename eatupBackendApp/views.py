@@ -93,10 +93,13 @@ def getDictArray(reqDict, name):
             rest = k[len(name):]
             if len(rest) == 0:
                 continue
-            for i in xrange(0, len(parts)):
-                parts[i] = repr(dumps(parts[i]))
+
             # split the string into different components
             parts = [p[:-1] for p in rest.split('[')][1:]
+
+            for i in xrange(0, len(parts)):
+                parts[i] = repr(dumps(parts[i]))
+                
             id = int(parts[0])
 
             # add a new dictionary if it doesn't exist yet
