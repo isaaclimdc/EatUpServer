@@ -10,6 +10,7 @@ from annoying.functions import get_object_or_None
 from django.shortcuts import render
 from django.utils.timezone import utc
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.simplejson import dumps
 
 try:
     import json
@@ -92,10 +93,11 @@ def getDictArray(reqDict, name):
             rest = k[len(name):]
             if len(rest) == 0:
                 continue
-
+            for i in xrange(0, len(parts)):
+                parts[i] = repr(dumps(parts[i]))
             # split the string into different components
             parts = [p[:-1] for p in rest.split('[')][1:]
-            id = int(parts[0].replace("&#39;", ""))
+            id = int(parts[0])
 
             # add a new dictionary if it doesn't exist yet
             if id not in dic:
