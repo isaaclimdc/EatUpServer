@@ -470,7 +470,7 @@ def updateAndSaveEvent(dataDict, creationMode=False):
             'eid': newEvent.pk}
     
 @json_response() 
-@csrf_exempt  
+@csrf_exempt
 def createEvent(request):
     # change this to POST if it turns out ios apps don't have to worry about
     # cross domain policy
