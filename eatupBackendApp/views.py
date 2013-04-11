@@ -95,9 +95,6 @@ def getDictArray(reqDict, name):
 
             # split the string into different components
             parts = [p[:-1] for p in rest.split('[')][1:]
-            for p in parts:
-                p.replace('\"', '\'')
-            print parts
             id = int(parts[0])
 
             # add a new dictionary if it doesn't exist yet
