@@ -13,7 +13,7 @@ $(document).ready(function(){
     var data = {
                   title: "got dangit bobby",
                   description: "that boy ain't right",
-                  timestamp: (new Date()).valueOf(), 
+                  date_time_raw: (new Date()).valueOf(), 
                   participants: [67890],
                   locations: [
                     {
@@ -32,7 +32,7 @@ $(document).ready(function(){
         // data structures)
         //participants: null,
         //host: 67890,
-        timestamp: (new Date()).valueOf(),
+        date_time_raw: (new Date()).valueOf(),
         locations: null
     };         
                
@@ -67,7 +67,7 @@ $(document).ready(function(){
         uid: 100002448015520,
         first_name: "John",
         last_name: "Doe",
-        prof_pic_url: "http://www.lefthandedtoons.com/toons/justin_treepeople.gif",
+        prof_pic: "http://www.lefthandedtoons.com/toons/justin_treepeople.gif",
         //"https://www.google.com/images/srpr/logo4w.png",
         // "https://www.google.com/webhp?hl=en&tab=ww",
         // "https://dsf-djangosnippets.s3.amazonaws.com/img/logo.gif",
@@ -80,7 +80,7 @@ $(document).ready(function(){
         last_name: "Hill",
         participating: null,
         friends: [],
-        prof_pic_url: "http://wondermark.com/c/2013-04-02-926crook.gif"
+        prof_pic: "http://wondermark.com/c/2013-04-02-926crook.gif"
     };
     
     $.ajax({
