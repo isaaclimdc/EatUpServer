@@ -34,7 +34,7 @@ urlpatterns = patterns('',
 # this pattern allows django to serve media files in production
 urlpatterns += patterns('',
     url(r'^media/profilePics/(?P<path>.*)$', 'django.views.static.serve',
-        {'document_root': settings.PROFILE_PICS_ROOT}),
+        {'document_root': settings.PROFILE_PICS_ROOT, 'show_indexes': True}),
 )
 
 # this pattern allows django to serve static files in production
