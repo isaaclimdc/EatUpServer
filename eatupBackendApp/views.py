@@ -10,6 +10,7 @@ from annoying.functions import get_object_or_None
 from django.shortcuts import render
 from django.utils.timezone import utc
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.simplejson import dumps
 
 try:
     import json
