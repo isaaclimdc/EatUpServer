@@ -15,6 +15,52 @@ $(document).ready(function(){
                   description: "that boy ain't right",
                   date_time_raw: (new Date()).valueOf(), 
                   participants: [],
+                  locations: ["damnit", "somewhere"],
+                  host: 12345
+               };
+    var editedData = {
+        description: null, 
+        // use null to indicate that you'd like to clear the participants list
+        // (empty array doesn't work due to jquery not passing along empty 
+        // data structures)
+        //participants: null,
+        //host: 67890,
+        date_time_raw: (new Date()).valueOf(),
+        locations: ["iunno"]
+    };         
+               
+    $.ajax({
+        url: 'create/event/',
+        dataType: 'json',
+        type: 'post',
+        data: data,
+        success: function(data){
+            console.log('success', data);
+            if ("error" in data){
+                return;
+            }
+            var eid = data.eid;
+            editedData.eid = eid;
+            $.ajax({
+                url: 'edit/event/',
+                dataType: 'jsonp',
+                type: 'get',
+                data: editedData,
+                success: function(data){ console.log('edit success', data) },
+                error: function(data){ console.log('edit failure', data) }
+            });
+        },
+        error: function(data){
+            console.log('failure', data);
+        }
+    });
+    
+    /** version that would have worked if JSONs were passed to server
+    var data = {
+                  title: "got dangit bobby",
+                  description: "that boy ain't right",
+                  date_time_raw: (new Date()).valueOf(), 
+                  participants: [],
                   locations: [
                     {
                         lat: (Math.random()*2000)-1000,
@@ -61,6 +107,7 @@ $(document).ready(function(){
             console.log('failure', data);
         }
     });
+    **/
     
     /*
     var data = {

@@ -118,19 +118,27 @@ class AppUser(JsonableModel):
     
     def __unicode__(self):
         return u'%s, %s (uid: %s)' % (self.last_name, self.first_name, self.uid)
-        
 
+        
 class Location(JsonableModel):
     lat = models.FloatField()
     lng = models.FloatField()
     friendly_name = models.CharField(max_length=128, blank=True)
     link = models.URLField(blank=True)
     num_votes = models.PositiveIntegerField(default=0)
-    eventHere = models.ForeignKey(Event, related_name="locations", 
+    eventHere = models.ForeignKey(Event, related_name="locations_orig", 
                                   null=True, blank=True)
     
     def __unicode__(self):
         return u"(id: %s) %.3f, %.3f: %s " % (self.id, self.lat, self.lng, 
                                               self.friendly_name)
         
-        
+
+# really dumb version of Locations until you figure out nested JSON passing
+class DumbLocation(JsonableModel):
+    friendly_name = models.CharField(max_length=128)
+    
+    eventHere = models.ForeignKey(Event, related_name="locations", 
+                                  null=True, blank=True)
+    def __unicode__(self):
+        return u"(id: %s) %s " % (self.id, self.friendly_name)

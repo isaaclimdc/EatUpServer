@@ -3,7 +3,7 @@ from django.conf import settings
 from django.http import (HttpResponse, HttpResponseBadRequest, 
                          HttpResponseServerError, HttpResponseForbidden, 
                          HttpResponseRedirect, HttpResponseNotFound)
-from eatupBackendApp.models import Event, AppUser, Location
+from eatupBackendApp.models import Event, AppUser, Location, DumbLocation
 from eatupBackendApp.json_response import json_response
 import eatupBackendApp.imageUtil as imageUtil
 from annoying.functions import get_object_or_None 
@@ -279,7 +279,7 @@ def parseTimestamp(timestampStr):
     
 def getUpdatedLocations(newLocationsData, allowCreation=False, 
                         allowEditing=True, parentEvent=None):   
-    # for every location data, update locations as needed and storedthe 
+    # for every location data, update locations as needed and store the 
     # new object, but don't save to the database
     # during the initial runthrough. Does not save the updated location objects,
     # up to caller to called location.save() to update the database
@@ -294,7 +294,7 @@ def getUpdatedLocations(newLocationsData, allowCreation=False,
             return None, "invalid location data at index %d: %s" % (i, error)
         eventLocations.append(newLocation)
     
-    return eventLocations, None        
+    return eventLocations, None    
     
 def isListInRequestDict(dataDict, listName):
     if listName.endswith("[]"):
@@ -374,7 +374,11 @@ def updateAndSaveEvent(dataDict, creationMode=False):
     # clear the list of participants
     participantsGiven = isListInRequestDict(dataDict, "participants[]")
     rawParticipantIds = dataDict.getlist("participants[]")
-    rawLocationsData, locationsGiven = getDictArray(dataDict, "locations")
+    
+    dumbLocationsGiven = isListInRequestDict(dataDict, "locations[]")
+    dumbLocationNames = dataDict.getlist("locations[]")
+    
+    #rawLocationsData, locationsGiven = getDictArray(dataDict, "locations_orig")
     
     changeDict = {
         'title': None,
@@ -383,7 +387,8 @@ def updateAndSaveEvent(dataDict, creationMode=False):
         'host': None
     }
     newParticipants = None
-    newLocations = None
+    #newLocations = None
+    newDumbLocations = None
     
     # load simple attribute dictionary
     if rawTitle is None:
@@ -428,13 +433,22 @@ def updateAndSaveEvent(dataDict, creationMode=False):
                                                    lambda s: int(s), 
                                                    objName="participant")
         if error: return createErrorDict(error)
-        
+       
+    '''   
     if locationsGiven:
         newLocations, error = getUpdatedLocations(rawLocationsData, 
                                                   allowCreation=True,
                                                   allowEditing=True,
                                                   parentEvent=newEvent)
         if error: return createErrorDict(error)
+    '''
+    
+    print dumbLocationsGiven, dumbLocationNames
+    if dumbLocationsGiven:
+        newDumbLocations = []
+        for dumbLocName in dumbLocationNames:
+            newDumbLoc = DumbLocation(friendly_name=dumbLocName)
+            newDumbLocations.append(newDumbLoc)
         
     # finally, update the events' simple attributes
     for key in changeDict.keys():
@@ -451,6 +465,7 @@ def updateAndSaveEvent(dataDict, creationMode=False):
     # finally, save locations and events
     newEvent.save()
     
+    '''
     if newLocations is not None:
         for loc in newLocations:
             loc.save()
@@ -459,6 +474,16 @@ def updateAndSaveEvent(dataDict, creationMode=False):
         
         # clean up newly orphaned locations
         Location.objects.filter(eventHere=None).delete()
+    '''
+    
+    if newDumbLocations is not None:
+        for loc in newDumbLocations:
+            loc.save()
+        newEvent.locations.clear()
+        newEvent.locations.add(*newDumbLocations)
+        
+        # clean up newly orphaned locations
+        DumbLocation.objects.filter(eventHere=None).delete()
         
     if newParticipants is not None:
         if newEvent.host not in newParticipants:
