@@ -562,11 +562,14 @@ def updateAndSaveUser(dataDict, creationMode=False):
     profPicFiletype = None
     if profPicUrl is not None:
         if profPicUrl != "":
+            currUser.prof_pic = profPicUrl
+            '''
             try:
                 profPicContent, profPicFiletype = \
                     imageUtil.getImageUrlContentAndType(profPicUrl)
             except ValueError as e:
                 return createErrorDict(str(e))
+            '''
         # delete profile picture if prompted to        
         else:
             currUser.prof_pic = None
@@ -588,6 +591,7 @@ def updateAndSaveUser(dataDict, creationMode=False):
         currUser.friends.clear()
         currUser.friends.add(*newFriends)
         
+    '''    
     # save profile picture
     if profPicContent and profPicFiletype:
         filename = "profpic_%d.%s" % (currUser.uid, profPicFiletype)
@@ -598,6 +602,7 @@ def updateAndSaveUser(dataDict, creationMode=False):
             errorDict = createErrorDict(str(e))
             errorDict['uid'] = currUser.pk
             return errorDict
+    '''
     
     return {'status': 'ok',
             'uid': currUser.pk}

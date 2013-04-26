@@ -99,8 +99,9 @@ class AppUser(JsonableModel):
     first_name = models.CharField(max_length=128)
     last_name = models.CharField(max_length=128)
     
-    prof_pic = models.ImageField(upload_to=settings.PROFILE_PICS_FOLDER,
-                                 blank=True)
+    prof_pic = models.URLField(blank=True)
+               #models.ImageField(upload_to=settings.PROFILE_PICS_FOLDER,
+               #                  blank=True)
     
     participating = models.ManyToManyField(Event, blank=True,
                                            # define 'through' attribute here so 
@@ -113,7 +114,7 @@ class AppUser(JsonableModel):
     
     extraFieldNames = ["hosting"]
     allToManyFields = {'participating', 'friends', "hosting"}
-    imageFields = {'prof_pic'}
+    #imageFields = {'prof_pic'}
     idName = "uid"
     
     def __unicode__(self):
