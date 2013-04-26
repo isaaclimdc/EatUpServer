@@ -17,6 +17,8 @@ urlpatterns = patterns('',
     url(r'^info/userevents/', 'eatupBackendApp.views.getUserEvents', name='get_user_events'),
     url(r'^create/event/', 'eatupBackendApp.views.createEvent', name='create_event'),
     url(r'^create/user/', 'eatupBackendApp.views.createUser', name='create_user'),
+    url(r'^delete/event/', 'eatupBackendApp.views.deleteEvent', name='delete_event'),
+    url(r'^delete/user/', 'eatupBackendApp.views.deleteUser', name='delete_user'),
     
     # use null for participants and locations instead of empty arrays or dicts
     # if you want to clear it entirely

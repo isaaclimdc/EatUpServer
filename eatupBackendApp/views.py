@@ -623,3 +623,37 @@ def createUser(request):
 def editUser(request):
     dataDict = request.REQUEST
     return updateAndSaveUser(dataDict, creationMode=False)    
+    
+@json_response()   
+def deleteUser(request):
+    dataDict = request.REQUEST
+    
+    if 'uid' not in dataDict:
+        return createErrorDict("facebook uid is required")
+    uid = parseLongOrNone(dataDict['uid'])
+    
+    user = get_object_or_None(AppUser, pk=uid)
+    if user is None:
+        return createErrorDict("cannot delete nonexistant user")
+    user.delete()    
+    
+    return {
+        "status": "ok"
+    }
+    
+@json_response()   
+def deleteEvent(request):
+    dataDict = request.REQUEST
+    
+    if 'eid' not in dataDict:
+        return createErrorDict("event id is required")
+    eid = parseLongOrNone(dataDict['eid'])
+    
+    event = get_object_or_None(Event, pk=eid)
+    if event is None:
+        return createErrorDict("cannot delete nonexistant event")
+    event.delete()    
+    
+    return {
+        "status": "ok"
+    }  

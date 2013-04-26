@@ -109,7 +109,7 @@ $(document).ready(function(){
     });
     **/
     
-    
+    /*
     var data = {
         uid: 100002448015520,
         first_name: "John",
@@ -122,6 +122,7 @@ $(document).ready(function(){
         participating: [],//[1],
         friends: []//[12345, 67890]
     };
+    
     var editedData = {
         first_name: "Hank",
         last_name: "Hill",
@@ -143,6 +144,7 @@ $(document).ready(function(){
             }
             
             var uid = data.uid;
+            
             editedData['uid'] = uid;
             $.ajax({
                 url: "/edit/user/",
@@ -162,8 +164,38 @@ $(document).ready(function(){
             console.log('failure', data);
         }
     });
+    */
+    /*
+    $.ajax({
+        url: "/delete/user",
+        dataType: 'jsonp',
+        type: 'get',
+        data: {
+            uid: 12345
+        },
+        success: function(data){
+            console.log('delete success', data);
+        },
+        error: function(data){
+            console.log("delete failure", data);
+        }
+    });
     
-    
+     $.ajax({
+        url: "/delete/event",
+        dataType: 'jsonp',
+        type: 'get',
+        data: {
+            eid: 1
+        },
+        success: function(data){
+            console.log('delete success', data);
+        },
+        error: function(data){
+            console.log("delete failure", data);
+        }
+    });
+    */
 });
 </script>
 </body>
